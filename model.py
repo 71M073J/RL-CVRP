@@ -3,6 +3,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+
 # device = torch.device('cpu')
 
 
@@ -159,11 +161,11 @@ class ReinforceRL4CVRP(nn.Module):
             last_action = self.x0.expand(batch_size, -1, -1)
 
         # Always use a mask - if no function is provided, we don't update it
-        mask = depot.clone().detach().requires_grad_(True) # torch.tensor(depot, device=device)  # torch.ones(batch_size, num_nodes, device=device)
+        mask = depot.clone().detach()  # torch.tensor(depot, device=device)  # torch.ones(batch_size, num_nodes, device=device)
 
         # Structures for holding the output sequences
         tour_idx, tour_logp = [], []
-        max_steps = num_nodes * 5 #TODO maybe uncomment? for big networks if self.mask_fn is None else 1000
+        max_steps = num_nodes * 5  # TODO maybe uncomment? for big networks if self.mask_fn is None else 1000
 
         # Static elements only need to be processed once, and can be used across
         # all 'pointing' iterations. When / if the dynamic elements change,
@@ -175,7 +177,6 @@ class ReinforceRL4CVRP(nn.Module):
                 break
 
             # ... but compute a hidden rep for each element added to sequence
-            #TODO še last action je zdej kot input
             probs, last_hh = self.agent(last_action, adj, static, dynamic, last_hh)
             # torch.set_printoptions(profile="full")
             #

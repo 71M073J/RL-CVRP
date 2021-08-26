@@ -169,10 +169,10 @@ def train_vrp(args):
     STATIC_SIZE = 2  # (x, y)
     DYNAMIC_SIZE = 2  # (load, demand)
     max_load = LOAD_DICT[args.num_nodes]
-    enc_feats = 64
+    enc_feats = 16
     STATIC_SIZE = enc_feats
     num_nodes = args.num_nodes
-    embedding = "node2vec"  # "node2vec"
+    embedding = None  # "node2vec"
     train_data = VehicleRoutingDataset(args.train_size,
                                        args.num_nodes,
                                        max_load,
@@ -240,7 +240,7 @@ if __name__ == '__main__':
     parser.add_argument('--actor_lr', default=5e-5, type=float)
     parser.add_argument('--gamma', default=0.995, type=float)
     parser.add_argument('--max_grad_norm', default=2., type=float)
-    parser.add_argument('--batch_size', default=32, type=int)
+    parser.add_argument('--batch_size', default=256, type=int)
     parser.add_argument('--hidden', dest='hidden_size', default=128, type=int)
     parser.add_argument('--dropout', default=0.1, type=float)
     parser.add_argument('--layers', dest='num_layers', default=1, type=int)
