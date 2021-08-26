@@ -119,7 +119,7 @@ def train(actor, task, num_nodes, train_data, valid_data, reward_fn,
                 mean_loss = np.mean(losses[-100:])
                 mean_reward = np.mean(rewards[-100:])
 
-                print('  Batch %d/%d, reward: %2.3f, avg. loss: %2.4f, took: %2.4fs' %
+                print('  Batch %d/%d, tour length: %2.3f, avg. loss: %2.4f, took: %2.4fs' %
                       (batch_idx + 1, len(train_loader), mean_reward, mean_loss,
                        times[-1]))
 
@@ -237,7 +237,7 @@ if __name__ == '__main__':
     parser.add_argument('--test', action='store_true', default=False)
     parser.add_argument('--task', default='vrp')
     parser.add_argument('--nodes', dest='num_nodes', default=16, type=int)
-    parser.add_argument('--actor_lr', default=5e-5, type=float)
+    parser.add_argument('--actor_lr', default=5e-4, type=float)
     parser.add_argument('--gamma', default=0.995, type=float)
     parser.add_argument('--max_grad_norm', default=2., type=float)
     parser.add_argument('--batch_size', default=256, type=int)
