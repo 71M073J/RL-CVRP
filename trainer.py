@@ -102,10 +102,11 @@ def train(actor, task, num_nodes, train_data, valid_data, reward_fn,
             # Sum the log probabilities for each city in the tour
             reward = reward_fn(dynamic, tour_indices, adj, x0, num_nodes)
 
-            actor_loss = torch.mean(reward * tour_logp.sum(dim=1))
+            actor_loss = torch.sum(reward * tour_logp.sum(dim=1))
 
             actor_optim.zero_grad()
             actor_loss.backward()
+            #TODO? use or not
             # torch.nn.utils.clip_grad_norm_(actor.parameters(), max_grad_norm)
             actor_optim.step()
 
