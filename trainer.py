@@ -170,7 +170,7 @@ def train_vrp(args):
     STATIC_SIZE = 2  # (x, y)
     DYNAMIC_SIZE = 2  # (load, demand)
     max_load = LOAD_DICT[args.num_nodes]
-    enc_feats = 16
+    enc_feats = 49
     STATIC_SIZE = enc_feats
     num_nodes = args.num_nodes
     embedding = None  # "node2vec"
