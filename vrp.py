@@ -192,7 +192,7 @@ class VehicleRoutingDataset(Dataset):
         # demands = dynamic.data[:, 1] #TODO
 
         # visit = torch.full((256,), 0)
-        visit = all_demands.gt(0)[range(chosen_idx.size(0)), chosen_idx]
+        visit = torch.gather(all_demands.gt(0), 1, chosen_idx.unsqueeze(1))  # [range(chosen_idx.size(0)), chosen_idx]
         # demand_indices = torch.nonzero(all_demands)
         # for i in range(len(demand_indices)):
         #    if chosen_idx[demand_indices[i, 0]] == demand_indices[i, 1]:
@@ -211,7 +211,7 @@ class VehicleRoutingDataset(Dataset):
             new_demand = torch.clamp(demand - load, min=0)
 
             # Broadcast the load to all nodes, but update demand seperately
-            visit_idx = visit.nonzero().squeeze()
+            visit_idx = visit.squeeze().nonzero().squeeze()
             all_loads[visit_idx] = new_load[visit_idx]
             all_demands[visit_idx, chosen_idx[visit_idx]] = new_demand[visit_idx].view(
                 -1)  # update visited nodes' demands
@@ -236,10 +236,11 @@ def reward(dynamic, tour_indices, adj, depot, num_nodes):
     # Convert the indices back into a tour
     length = adj[0, tour_indices[:, 1:], tour_indices[:, :-1]].sum(1)
 
+    #visit = torch.gather(all_demands.gt(0), 1, chosen_idx.unsqueeze(1))  # [range(chosen_idx.size(0)), chosen_idx]
+
     all_demands = dynamic[:, 1].clone()
     did_not_finish = tour_indices[:, -1].ne(torch.nonzero(depot)[:, 1]) * torch.sum(all_demands, dim=1).gt(0)
-    length[did_not_finish] = length[did_not_finish] + torch.mul(torch.sum(all_demands[did_not_finish], dim=1),
-                                                                num_nodes * 5 * 1000)
+    length += did_not_finish.mul(all_demands.sum(dim=1).mul(num_nodes * 5 * 1000))
 
     # print(tour)
     # torch.set_printoptions(profile="default")
