@@ -23,6 +23,7 @@ class PolicyNetwork(nn.Module):
                                           device=device, requires_grad=True))
 
         # Used to compute a representation of the current decoder output
+        # TODO self.fc1 = nn.Linear(2 + 2 * enc_feats + num_nodes, ) WHYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY
         self.gru = nn.GRU(2 + 2 * enc_feats + num_nodes, hidden_size, num_layers,
                           batch_first=True,
                           dropout=dropout if num_layers > 1 else 0)
