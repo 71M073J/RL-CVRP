@@ -70,7 +70,6 @@ def train(actor, task, num_nodes, train_data, valid_data, reward_fn,
         os.makedirs(checkpoint_dir)
 
     actor_optim = optim.Adam(actor.parameters(), lr=actor_lr)
-    # lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(actor_optim, mode="max", patience=2, min_lr=1e-5)
     train_loader = DataLoader(train_data, batch_size, True, num_workers=0)
     valid_loader = DataLoader(valid_data, batch_size, False, num_workers=0)
 
@@ -235,7 +234,7 @@ if __name__ == '__main__':
     parser.add_argument('--test', action='store_true', default=False)
     parser.add_argument('--task', default='vrp')
     parser.add_argument('--nodes', dest='num_nodes', default=16, type=int)
-    parser.add_argument('--actor_lr', default=5e-4, type=float)
+    parser.add_argument('--actor_lr', default=5e-5, type=float)
     parser.add_argument('--gamma', default=0.995, type=float)
     parser.add_argument('--max_grad_norm', default=2., type=float)
     parser.add_argument('--batch_size', default=256, type=int)
