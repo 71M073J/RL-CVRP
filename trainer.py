@@ -34,7 +34,6 @@ def validate(data_loader, actor, reward_fn, num_nodes, render_fn=None, save_dir=
 
     rewards = []
     for batch_idx, batch in enumerate(data_loader):
-
         adj, static, dynamic, x0 = batch
 
         static = static.to(device)
@@ -48,10 +47,10 @@ def validate(data_loader, actor, reward_fn, num_nodes, render_fn=None, save_dir=
         reward = reward_fn(static, tour_indices, adj, x0, num_nodes).mean().item()
         rewards.append(reward)
 
-        if render_fn is not None and batch_idx < num_plot:
-            name = 'batch%d_%2.4f.png' % (batch_idx, reward)
-            path = os.path.join(save_dir, name)
-            render_fn(static, tour_indices, path)
+        # if render_fn is not None and batch_idx < num_plot:
+        #    name = 'batch%d_%2.4f.png' % (batch_idx, reward)
+        #    path = os.path.join(save_dir, name)
+        #    render_fn(static, tour_indices, path)
 
     actor.train()
     return np.mean(rewards)
@@ -71,7 +70,7 @@ def train(actor, task, num_nodes, train_data, valid_data, reward_fn,
         os.makedirs(checkpoint_dir)
 
     actor_optim = optim.Adam(actor.parameters(), lr=actor_lr)
-
+    # lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(actor_optim, mode="max", patience=2, min_lr=1e-5)
     train_loader = DataLoader(train_data, batch_size, True, num_workers=0)
     valid_loader = DataLoader(valid_data, batch_size, False, num_workers=0)
 
@@ -106,8 +105,8 @@ def train(actor, task, num_nodes, train_data, valid_data, reward_fn,
 
             actor_optim.zero_grad()
             actor_loss.backward()
-            #TODO? use or not
-            # torch.nn.utils.clip_grad_norm_(actor.parameters(), max_grad_norm)
+            # TODO? use or not
+            torch.nn.utils.clip_grad_norm_(actor.parameters(), max_grad_norm)
             actor_optim.step()
 
             rewards.append(torch.mean(reward.detach()).item())
@@ -170,7 +169,7 @@ def train_vrp(args):
     STATIC_SIZE = 2  # (x, y)
     DYNAMIC_SIZE = 2  # (load, demand)
     max_load = LOAD_DICT[args.num_nodes]
-    enc_feats = 49
+    enc_feats = 16
     STATIC_SIZE = enc_feats
     num_nodes = args.num_nodes
     embedding = None  # "node2vec"
@@ -212,8 +211,6 @@ def train_vrp(args):
         path = os.path.join(args.checkpoint, 'actor.pt')
         actor.load_state_dict(torch.load(path, device))
 
-        path = os.path.join(args.checkpoint, 'critic.pt')
-
     if not args.test:
         train(actor, **kwargs)
 
@@ -237,7 +234,7 @@ if __name__ == '__main__':
     parser.add_argument('--checkpoint', default=None)
     parser.add_argument('--test', action='store_true', default=False)
     parser.add_argument('--task', default='vrp')
-    parser.add_argument('--nodes', dest='num_nodes', default=49, type=int)
+    parser.add_argument('--nodes', dest='num_nodes', default=16, type=int)
     parser.add_argument('--actor_lr', default=5e-4, type=float)
     parser.add_argument('--gamma', default=0.995, type=float)
     parser.add_argument('--max_grad_norm', default=2., type=float)
@@ -245,7 +242,7 @@ if __name__ == '__main__':
     parser.add_argument('--hidden', dest='hidden_size', default=128, type=int)
     parser.add_argument('--dropout', default=0.1, type=float)
     parser.add_argument('--layers', dest='num_layers', default=1, type=int)
-    parser.add_argument('--train-size', default=65536, type=int)  # 65536
+    parser.add_argument('--train-size', default=256, type=int)  # 65536
     parser.add_argument('--valid-size', default=256, type=int)
 
     args = parser.parse_args()
