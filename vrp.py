@@ -130,7 +130,7 @@ class VehicleRoutingDataset(Dataset):
 
         weights = torch.full((num_samples, graph_size), 1.)
         x = torch.multinomial(weights, 1 + num_demands, False)
-        depot = torch.full((num_samples, graph_size), False)
+        depot = torch.full((num_samples, graph_size), 0.)
         depot[range(num_samples), x[:, 0]] = 1.
         self.depot = depot.requires_grad_(True)
         demand = torch.full(dynamic_shape, 0.)
@@ -173,7 +173,7 @@ class VehicleRoutingDataset(Dataset):
 
         # ... unless we're waiting for all other samples in a minibatch to finish
         has_no_demand = demands.sum(dim=1).eq(0)
-        new_mask = (self.adj[chosen_idx].gt(0) * demands.le(loads)).float()  # adjacencies to start with
+        new_mask = (self.adj[chosen_idx].gt(0) * demands.le(loads)).double()  # adjacencies to start with
 
         done = in_depot * has_no_demand
         new_mask[done] = depot[chosen_idx[done]]
