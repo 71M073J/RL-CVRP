@@ -27,7 +27,7 @@ torch.set_default_tensor_type(torch.DoubleTensor)
 
 class VehicleRoutingDataset(Dataset):
     def __init__(self, num_samples, graph_size, max_load=20, max_demand=9,
-                 seed=None, embedding=None, neighbours=5, graf="manhattan", avg_power=5, num_demands=4, max_dist=10.,
+                 seed=None, embedding=None, neighbours=5, graf="manhattan", avg_power=5, num_demands=0, max_dist=10.,
                  different_num_of_demands=False, enc_feats=16):
         super(VehicleRoutingDataset, self).__init__()
 
@@ -44,7 +44,7 @@ class VehicleRoutingDataset(Dataset):
         self.max_load = max_load
         self.max_demand = max_demand
         self.num_demands = num_demands
-
+        num_demands = int(graph_size/4)
         torch.set_default_tensor_type(torch.DoubleTensor)
         # if graf == "manhattan":
         locations = []
@@ -65,14 +65,14 @@ class VehicleRoutingDataset(Dataset):
         g.add_nodes_from(range(graph_size))
         t = math.floor(math.sqrt(graph_size))
         g.add_weighted_edges_from(
-            [(i * t + j, (i + 1) * t + j, random.random() * max_dist) for i in range(t - 1) for j in range(t)])
+            [(i * t + j, (i + 1) * t + j, 1 / (random.random() * max_dist + 1)) for i in range(t - 1) for j in range(t)])
         g.add_weighted_edges_from(
-            [(i * t + j, i * t + j + 1, random.random() * max_dist) for i in range(t) for j in range(t - 1)])
+            [(i * t + j, i * t + j + 1, 1 / (random.random() * max_dist + 1)) for i in range(t) for j in range(t - 1)])
         adjacencies = torch.zeros((graph_size, graph_size,))  # adjacencies - the same for every sample
         for i, adj in g.adjacency():
             for node in adj:
-                adjacencies[i, node] = g.edges[i, node]["weight"]
-        self.adj = adjacencies.to(device).requires_grad_(True)
+                adjacencies[i, node] = 1/g.edges[i, node]["weight"]
+        self.adj = adjacencies.to(device)
         # to je static value enak za vse sample, ker treniramo na istem grafu
         # zato so to tudi node embeddingi, ker se parametri networka ne spreminjajo
         # self.road_lengths = torch.tensor((np.zeros([graph_size, graph_size]))) # costs of these roads, technically adjacencies not needed
@@ -130,9 +130,9 @@ class VehicleRoutingDataset(Dataset):
 
         weights = torch.full((num_samples, graph_size), 1.)
         x = torch.multinomial(weights, 1 + num_demands, False)
-        depot = torch.full((num_samples, graph_size), 0.)
-        depot[range(num_samples), x[:, 0]] = 1.
-        self.depot = depot.requires_grad_(True)
+        depot = torch.full((num_samples, graph_size), False)
+        depot[range(num_samples), x[:, 0]] = True
+        self.depot = depot
         demand = torch.full(dynamic_shape, 0.)
         if different_num_of_demands:  # TODO not fully implemented
             for i in range(num_samples):
@@ -173,7 +173,7 @@ class VehicleRoutingDataset(Dataset):
 
         # ... unless we're waiting for all other samples in a minibatch to finish
         has_no_demand = demands.sum(dim=1).eq(0)
-        new_mask = (self.adj[chosen_idx].gt(0) * demands.le(loads)).double()  # adjacencies to start with
+        new_mask = self.adj[chosen_idx].gt(0) * demands.le(loads)  # adjacencies to start with
 
         done = in_depot * has_no_demand
         new_mask[done] = depot[chosen_idx[done]]
@@ -184,8 +184,8 @@ class VehicleRoutingDataset(Dataset):
 
         # Update the dynamic elements differently for if we visit depot vs. a city
         # Clone the dynamic variable so we don't mess up graph
-        all_loads = dynamic[:, 0].clone()  # .detach()
-        all_demands = dynamic[:, 1].clone()  # .detach()
+        all_loads = dynamic[:, 0].clone().detach()
+        all_demands = dynamic[:, 1].clone().detach()
         # with torch.no_grad():
         # loads = dynamic.data[:, 0]  # (batch_size, seq_len)
         # demands = dynamic.data[:, 1] #TODO
@@ -224,8 +224,7 @@ class VehicleRoutingDataset(Dataset):
             all_loads[temp] = 1.  # we refresh load and demand of the depot
             all_demands[temp, depot_idx[temp]] = 0.
 
-        return torch.cat((all_loads.unsqueeze(1), all_demands.unsqueeze(1)), 1).clone().detach().requires_grad_(
-            True)  # torch.tensor(tensor.data, device=dynamic.device)
+        return torch.cat((all_loads.unsqueeze(1), all_demands.unsqueeze(1)), 1).clone().detach()  # torch.tensor(tensor.data, device=dynamic.device)
 
 
 def reward(dynamic, tour_indices, adj, depot, num_nodes):

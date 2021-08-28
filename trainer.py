@@ -168,7 +168,7 @@ def train_vrp(args):
     STATIC_SIZE = 2  # (x, y)
     DYNAMIC_SIZE = 2  # (load, demand)
     max_load = LOAD_DICT[args.num_nodes]
-    enc_feats = 16
+    enc_feats = 32
     STATIC_SIZE = enc_feats
     num_nodes = args.num_nodes
     embedding = "node2vec"
@@ -233,7 +233,7 @@ if __name__ == '__main__':
     parser.add_argument('--checkpoint', default=None)
     parser.add_argument('--test', action='store_true', default=False)
     parser.add_argument('--task', default='vrp')
-    parser.add_argument('--nodes', dest='num_nodes', default=16, type=int)
+    parser.add_argument('--nodes', dest='num_nodes', default=49, type=int)
     parser.add_argument('--actor_lr', default=5e-4, type=float)
     parser.add_argument('--gamma', default=0.995, type=float)
     parser.add_argument('--max_grad_norm', default=2., type=float)
