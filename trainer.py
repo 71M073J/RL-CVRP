@@ -63,6 +63,7 @@ def train(actor, task, num_nodes, train_data, valid_data, reward_fn,
 
     now = '%s' % datetime.datetime.now().time()
     now = now.replace(':', '_')
+    now = now + kwargs['emb']
     save_dir = os.path.join(task, '%d' % num_nodes, now)
 
     checkpoint_dir = os.path.join(save_dir, 'checkpoints')
@@ -205,7 +206,7 @@ def train_vrp(args):
     kwargs['valid_data'] = valid_data
     kwargs['reward_fn'] = vrp.reward
     kwargs['render_fn'] = None  # TODO vrp.render
-
+    kwargs['emb'] = embedding
     if args.checkpoint:
         path = os.path.join(args.checkpoint, 'actor.pt')
         actor.load_state_dict(torch.load(path, device))
