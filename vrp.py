@@ -73,7 +73,7 @@ class VehicleRoutingDataset(Dataset):
         for i, adj in g.adjacency():
             for node in adj:
                 adjacencies[i, node] = 1 / g.edges[i, node]["weight"]
-        self.adj = adjacencies
+        self.adj = adjacencies.to(device)
         # to je static value enak za vse sample, ker treniramo na istem grafu
         # zato so to tudi node embeddingi, ker se parametri networka ne spreminjajo
         # self.road_lengths = torch.tensor((np.zeros([graph_size, graph_size]))) # costs of these roads, technically adjacencies not needed
@@ -175,20 +175,20 @@ class VehicleRoutingDataset(Dataset):
 
         # ... unless we're waiting for all other samples in a minibatch to finish
         has_no_demand = demands.sum(dim=1).eq(0)
-        #x = torch.gather(self.adj.expand(-1, -1, chosen_idx.size(0)), 1, chosen_idx.unsqueeze(1))
-        #torch.set_printoptions(profile="full")
-        #new_mask = self.adj[chosen_idx]
+        # x = torch.gather(self.adj.expand(-1, -1, chosen_idx.size(0)), 1, chosen_idx.unsqueeze(1))
+        # torch.set_printoptions(profile="full")
+        # new_mask = self.adj[chosen_idx]
         new_mask = self.adj[chosen_idx].gt(0) * demands.le(loads)
-        #print(new_mask.sum(dim=1))
+        # print(new_mask.sum(dim=1))
         done = in_depot * has_no_demand
-        #print(demands[127])
-        #print(loads[127])
-        #print(x[127])
-        #print(self.adj[chosen_idx[127]])
+        # print(demands[127])
+        # print(loads[127])
+        # print(x[127])
+        # print(self.adj[chosen_idx[127]])
         if done.any():
             new_mask[done, :] = depot[done, :].gt(0)
 
-        #torch.set_printoptions(profile="default")
+        # torch.set_printoptions(profile="default")
 
         return new_mask.float()
 
@@ -212,7 +212,7 @@ class VehicleRoutingDataset(Dataset):
         in_depot = torch.gather(depot, 1, chosen_idx.unsqueeze(1)).squeeze().gt(0)
         depot_idx = depot.nonzero()[:, 1]
         # in_depot = depot_idx.eq(chosen_idx)
-        #torch.set_printoptions(profile="full")
+        # torch.set_printoptions(profile="full")
         load = torch.gather(all_loads, 1, chosen_idx.unsqueeze(1))
         demand = torch.gather(all_demands, 1, chosen_idx.unsqueeze(1))
 
@@ -240,16 +240,17 @@ class VehicleRoutingDataset(Dataset):
 
         # return torch.cat((all_loads.unsqueeze(1), all_demands.unsqueeze(1)), 1).clone().detach()  # torch.tensor(tensor.data, device=dynamic.device)
 
-
     def reward(self, dynamic, tour_indices, adj, depot, num_nodes):
         """
         Euclidean distance between all cities / nodes given by tour_indices
         """
 
         # Convert the indices back into a tourž
-        #idx = tour_indices.unsqueeze(1).expand(-1, -1)
-        #tour1 = torch.gather(self.adj, 1, tour_indices[:, 1:])
-        #tour2 = torch.gather()
+        # idx = tour_indices.unsqueeze(1).expand(-1, -1)
+        # tour1 = torch.gather(self.adj, 1, tour_indices[:, 1:])
+        # tour2 = torch.gather()
+        # t1 = torch.gather(adj, 1, tour_indices[:, 1:])
+        # t2 = torch.gather(t1, 1, tour_indices[:, :-1])
         length = self.adj[tour_indices[:, 1:], tour_indices[:, :-1]]
         length = length.sum(1)
 

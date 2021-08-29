@@ -63,7 +63,7 @@ def train(actor, task, num_nodes, train_data, valid_data, reward_fn,
 
     now = '%s' % datetime.datetime.now().time()
     now = now.replace(':', '_')
-    now = now + kwargs['emb']
+    now = now + str(kwargs['emb'])
     save_dir = os.path.join(task, '%d' % num_nodes, now)
 
     checkpoint_dir = os.path.join(save_dir, 'checkpoints')
@@ -163,14 +163,16 @@ def train_vrp(args):
     from vrp import VehicleRoutingDataset
 
     # Determines the maximum amount of load for a vehicle based on num nodes
-    LOAD_DICT = {16: 20, 49: 30, 1: 10, 25: 30, 36: 55, 64: 50, 81: 50, 5: 10, 10: 20, 20: 30, 50: 40, 100: 50}
+    LOAD_DICT = {16: 10, 49: 30, 25: 30, 36: 55, 64: 50, 81: 50, 5: 10, 10: 20, 20: 30, 50: 40, 100: 50}
     # TODO convert these values into self. attributes of VRPdataset
     MAX_DEMAND = 9
     DYNAMIC_SIZE = 2  # (load, demand)
     max_load = LOAD_DICT[args.num_nodes]
     num_nodes = args.num_nodes
-    embedding = "node2vec"
-    enc_feats = 32
+    embedding = args.embed
+    feat_dict = {None: num_nodes, "node2vec": int(num_nodes / 2), "GGVec": int(num_nodes / 2),
+                 "ProNE": int(num_nodes / 2), "UMAP": int(num_nodes / 2), "GraRep": int(num_nodes / 2)}
+    enc_feats = feat_dict[embedding]
     STATIC_SIZE = enc_feats
 
     train_data = VehicleRoutingDataset(args.train_size,
@@ -203,7 +205,7 @@ def train_vrp(args):
     kwargs = vars(args)
     kwargs['train_data'] = train_data
     kwargs['valid_data'] = valid_data
-    kwargs['reward_fn'] = vrp.reward
+    kwargs['reward_fn'] = train_data.reward
     kwargs['render_fn'] = None  # TODO vrp.render
     kwargs['emb'] = embedding
     if args.checkpoint:
@@ -221,7 +223,7 @@ def train_vrp(args):
 
     test_dir = 'test'
     test_loader = DataLoader(test_data, args.batch_size, False, num_workers=0)
-    out = validate(test_loader, actor, vrp.reward, num_nodes, vrp.render, test_dir, num_plot=5)
+    out = validate(test_loader, actor, train_data.reward, num_nodes, vrp.render, test_dir, num_plot=5)
 
     print('Average tour length: ', out)
 
@@ -241,9 +243,9 @@ if __name__ == '__main__':
     parser.add_argument('--hidden', dest='hidden_size', default=128, type=int)
     parser.add_argument('--dropout', default=0.1, type=float)
     parser.add_argument('--layers', dest='num_layers', default=1, type=int)
-    parser.add_argument('--train-size',default=1000000, type=int)
+    parser.add_argument('--train-size', default=1000000, type=int)
     parser.add_argument('--valid-size', default=1000, type=int)
-
+    parser.add_argument('--embed', default=None)
     args = parser.parse_args()
 
     # print('NOTE: SETTTING CHECKPOINT: ')
