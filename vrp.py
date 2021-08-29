@@ -176,7 +176,7 @@ class VehicleRoutingDataset(Dataset):
         new_mask = self.adj[chosen_idx].gt(0) * demands.le(loads)  # adjacencies to start with
 
         done = in_depot * has_no_demand
-        new_mask[done] = depot[chosen_idx[done]]
+        new_mask[done, :] = depot[done, :]
         return new_mask.float()
 
     def update_dynamic(self, dynamic, chosen_idx, depot):
