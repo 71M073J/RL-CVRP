@@ -234,7 +234,7 @@ if __name__ == '__main__':
     parser.add_argument('--checkpoint', default=None)
     parser.add_argument('--test', action='store_true', default=False)
     parser.add_argument('--task', default='vrp')
-    parser.add_argument('--nodes', dest='num_nodes', default=49, type=int)
+    parser.add_argument('--nodes', dest='num_nodes', default=16, type=int)
     parser.add_argument('--actor_lr', default=5e-3, type=float)
     parser.add_argument('--gamma', default=0.995, type=float)
     parser.add_argument('--max_grad_norm', default=2., type=float)
