@@ -106,7 +106,7 @@ def train(actor, task, num_nodes, train_data, valid_data, reward_fn,
             actor_optim.zero_grad()
             actor_loss.backward()
             # TODO? use or not
-            torch.nn.utils.clip_grad_norm_(actor.parameters(), max_grad_norm)
+            # torch.nn.utils.clip_grad_norm_(actor.parameters(), max_grad_norm)
             actor_optim.step()
 
             rewards.append(torch.mean(reward.detach()).item())
@@ -235,10 +235,10 @@ if __name__ == '__main__':
     parser.add_argument('--test', action='store_true', default=False)
     parser.add_argument('--task', default='vrp')
     parser.add_argument('--nodes', dest='num_nodes', default=49, type=int)
-    parser.add_argument('--actor_lr', default=5e-4, type=float)
+    parser.add_argument('--actor_lr', default=5e-3, type=float)
     parser.add_argument('--gamma', default=0.995, type=float)
     parser.add_argument('--max_grad_norm', default=2., type=float)
-    parser.add_argument('--batch_size', default=64, type=int)
+    parser.add_argument('--batch_size', default=32, type=int)
     parser.add_argument('--hidden', dest='hidden_size', default=128, type=int)
     parser.add_argument('--dropout', default=0.1, type=float)
     parser.add_argument('--layers', dest='num_layers', default=1, type=int)
