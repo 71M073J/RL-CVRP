@@ -44,7 +44,7 @@ class VehicleRoutingDataset(Dataset):
         self.max_load = max_load
         self.max_demand = max_demand
         self.num_demands = num_demands
-        num_demands = int(graph_size/4)
+        num_demands = int(graph_size / 4)
         torch.set_default_tensor_type(torch.DoubleTensor)
         # if graf == "manhattan":
         locations = []
@@ -65,14 +65,15 @@ class VehicleRoutingDataset(Dataset):
         g.add_nodes_from(range(graph_size))
         t = math.floor(math.sqrt(graph_size))
         g.add_weighted_edges_from(
-            [(i * t + j, (i + 1) * t + j, 1 / (random.random() * max_dist + 1)) for i in range(t - 1) for j in range(t)])
+            [(i * t + j, (i + 1) * t + j, 1 / (random.random() * max_dist + 1)) for i in range(t - 1) for j in
+             range(t)])
         g.add_weighted_edges_from(
             [(i * t + j, i * t + j + 1, 1 / (random.random() * max_dist + 1)) for i in range(t) for j in range(t - 1)])
         adjacencies = torch.zeros((graph_size, graph_size,))  # adjacencies - the same for every sample
         for i, adj in g.adjacency():
             for node in adj:
-                adjacencies[i, node] = 1/g.edges[i, node]["weight"]
-        self.adj = adjacencies.to(device)
+                adjacencies[i, node] = 1 / g.edges[i, node]["weight"]
+        self.adj = adjacencies
         # to je static value enak za vse sample, ker treniramo na istem grafu
         # zato so to tudi node embeddingi, ker se parametri networka ne spreminjajo
         # self.road_lengths = torch.tensor((np.zeros([graph_size, graph_size]))) # costs of these roads, technically adjacencies not needed
@@ -130,8 +131,8 @@ class VehicleRoutingDataset(Dataset):
 
         weights = torch.full((num_samples, graph_size), 1.)
         x = torch.multinomial(weights, 1 + num_demands, False)
-        depot = torch.full((num_samples, graph_size), False)
-        depot[range(num_samples), x[:, 0]] = True
+        depot = torch.full((num_samples, graph_size), 0.)
+        depot[range(num_samples), x[:, 0]] = 1.
         self.depot = depot
         demand = torch.full(dynamic_shape, 0.)
         if different_num_of_demands:  # TODO not fully implemented
@@ -170,13 +171,25 @@ class VehicleRoutingDataset(Dataset):
 
         # We should avoid traveling to the depot back-to-back
         in_depot = torch.nonzero(depot)[:, 1].eq(chosen_idx)
+        # in_depot = torch.gather(depot, 1, chosen_idx.unsqueeze(1)).squeeze().gt(0)
 
         # ... unless we're waiting for all other samples in a minibatch to finish
         has_no_demand = demands.sum(dim=1).eq(0)
-        new_mask = self.adj[chosen_idx].gt(0) * demands.le(loads)  # adjacencies to start with
-
+        #x = torch.gather(self.adj.expand(-1, -1, chosen_idx.size(0)), 1, chosen_idx.unsqueeze(1))
+        #torch.set_printoptions(profile="full")
+        #new_mask = self.adj[chosen_idx]
+        new_mask = self.adj[chosen_idx].gt(0) * demands.le(loads)
+        #print(new_mask.sum(dim=1))
         done = in_depot * has_no_demand
-        new_mask[done, :] = depot[done, :]
+        #print(demands[127])
+        #print(loads[127])
+        #print(x[127])
+        #print(self.adj[chosen_idx[127]])
+        if done.any():
+            new_mask[done, :] = depot[done, :].gt(0)
+
+        #torch.set_printoptions(profile="default")
+
         return new_mask.float()
 
     def update_dynamic(self, dynamic, chosen_idx, depot):
@@ -184,8 +197,8 @@ class VehicleRoutingDataset(Dataset):
 
         # Update the dynamic elements differently for if we visit depot vs. a city
         # Clone the dynamic variable so we don't mess up graph
-        all_loads = dynamic[:, 0].clone().detach()
-        all_demands = dynamic[:, 1].clone().detach()
+        all_loads = dynamic[:, 0].clone()
+        all_demands = dynamic[:, 1].clone()
         # with torch.no_grad():
         # loads = dynamic.data[:, 0]  # (batch_size, seq_len)
         # demands = dynamic.data[:, 1] #TODO
@@ -196,13 +209,14 @@ class VehicleRoutingDataset(Dataset):
         # for i in range(len(demand_indices)):
         #    if chosen_idx[demand_indices[i, 0]] == demand_indices[i, 1]:
         #        visit[demand_indices[i, 0]] = 1.
-
-        depot_idx = torch.nonzero(depot)[:, 1]
-        in_depot = depot_idx.eq(chosen_idx)
-
+        in_depot = torch.gather(depot, 1, chosen_idx.unsqueeze(1)).squeeze().gt(0)
+        depot_idx = depot.nonzero()[:, 1]
+        # in_depot = depot_idx.eq(chosen_idx)
+        #torch.set_printoptions(profile="full")
         load = torch.gather(all_loads, 1, chosen_idx.unsqueeze(1))
         demand = torch.gather(all_demands, 1, chosen_idx.unsqueeze(1))
 
+        # depot_idx = in_depot.squeeze().nonzero().squeeze()
         # Across the minibatch - if we've chosen to visit a city, try to satisfy
         # as much demand as possible
         if visit.any():
@@ -212,49 +226,53 @@ class VehicleRoutingDataset(Dataset):
             # Broadcast the load to all nodes, but update demand seperately
             visit_idx = visit.squeeze().nonzero().squeeze()
             all_loads[visit_idx] = new_load[visit_idx]
-            all_demands[visit_idx, chosen_idx[visit_idx]] = new_demand[visit_idx].view(
-                -1)  # update visited nodes' demands
+            all_demands[visit_idx, chosen_idx[visit_idx]] = new_demand[visit_idx].view(-1)
             # TODO A to updatanje loada dela prav???to dol
-            all_demands[visit_idx, depot_idx[visit_idx]] = -1. + new_load[visit_idx].view(
-                -1)  # set the demand of the depot to however we've spent, i.e. negative
+            all_demands[visit_idx, depot_idx[visit_idx]] = -1. + new_load[visit_idx].view(-1)
 
         # Return to depot to fill vehicle load
         if in_depot.any():
-            temp = in_depot.nonzero().squeeze()
-            all_loads[temp] = 1.  # we refresh load and demand of the depot
-            all_demands[temp, depot_idx[temp]] = 0.
+            all_loads[in_depot, :] = 1.  # we refresh load and demand of the depot
+            all_demands[in_depot, depot_idx[in_depot]] = 0.
 
-        return torch.cat((all_loads.unsqueeze(1), all_demands.unsqueeze(1)), 1).clone().detach()  # torch.tensor(tensor.data, device=dynamic.device)
+        tensor = torch.cat((all_loads.unsqueeze(1), all_demands.unsqueeze(1)), 1)
+        return torch.tensor(tensor.data, device=dynamic.device)
+
+        # return torch.cat((all_loads.unsqueeze(1), all_demands.unsqueeze(1)), 1).clone().detach()  # torch.tensor(tensor.data, device=dynamic.device)
 
 
-def reward(dynamic, tour_indices, adj, depot, num_nodes):
-    """
-    Euclidean distance between all cities / nodes given by tour_indices
-    """
+    def reward(self, dynamic, tour_indices, adj, depot, num_nodes):
+        """
+        Euclidean distance between all cities / nodes given by tour_indices
+        """
 
-    # Convert the indices back into a tour
-    length = adj[0, tour_indices[:, 1:], tour_indices[:, :-1]]
-    length = length.sum(1)
+        # Convert the indices back into a tourž
+        #idx = tour_indices.unsqueeze(1).expand(-1, -1)
+        #tour1 = torch.gather(self.adj, 1, tour_indices[:, 1:])
+        #tour2 = torch.gather()
+        length = self.adj[tour_indices[:, 1:], tour_indices[:, :-1]]
+        length = length.sum(1)
 
-    # visit = torch.gather(all_demands.gt(0), 1, chosen_idx.unsqueeze(1))  # [range(chosen_idx.size(0)), chosen_idx]
+        # visit = torch.gather(all_demands.gt(0), 1, chosen_idx.unsqueeze(1))  # [range(chosen_idx.size(0)), chosen_idx]
 
-    all_demands = dynamic[:, 1].clone()
-    did_not_finish = tour_indices[:, -1].ne(torch.nonzero(depot)[:, 1]) * torch.sum(all_demands, dim=1).gt(0)
-    length += did_not_finish.mul(all_demands.sum(dim=1).mul(num_nodes * 5 * 1000))
+        all_demands = dynamic[:, 1].clone()
+        # not in depot                                                           and no demand left
+        did_not_finish = tour_indices[:, -1].ne(torch.nonzero(depot)[:, 1]) * (torch.sum(all_demands, dim=1).gt(0))
+        length += did_not_finish.mul(all_demands.sum(dim=1).mul(num_nodes * 5 * 1000))
 
-    # print(tour)
-    # torch.set_printoptions(profile="default")
+        # print(tour)
+        # torch.set_printoptions(profile="default")
 
-    # Ensure we're always returning to the depot - note the extra concat
-    # won't add any extra loss, as the euclidean distance between consecutive
-    # points is 0
-    # start = static.data[:, :, 0].unsqueeze(1)
-    # y = torch.cat((start, tour, start), dim=1)
+        # Ensure we're always returning to the depot - note the extra concat
+        # won't add any extra loss, as the euclidean distance between consecutive
+        # points is 0
+        # start = static.data[:, :, 0].unsqueeze(1)
+        # y = torch.cat((start, tour, start), dim=1)
 
-    # Euclidean distance between each consecutive point
-    # tour_len = torch.sqrt(torch.sum(torch.pow(y[:, :-1] - y[:, 1:], 2), dim=2))
+        # Euclidean distance between each consecutive point
+        # tour_len = torch.sqrt(torch.sum(torch.pow(y[:, :-1] - y[:, 1:], 2), dim=2))
 
-    return length  # torch.tensor(length, device=device)
+        return length  # torch.tensor(length, device=device)
 
 
 def render(static, tour_indices, save_path):

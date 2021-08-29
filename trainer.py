@@ -57,7 +57,7 @@ def validate(data_loader, actor, reward_fn, num_nodes, render_fn=None, save_dir=
 
 
 def train(actor, task, num_nodes, train_data, valid_data, reward_fn,
-          render_fn, batch_size, actor_lr, gamma, max_grad_norm,
+          render_fn, batch_size, actor_lr, max_grad_norm,
           **kwargs):
     """Constructs the main actor & critic networks, and performs all training."""
 
@@ -111,13 +111,13 @@ def train(actor, task, num_nodes, train_data, valid_data, reward_fn,
 
             rewards.append(torch.mean(reward.detach()).item())
             losses.append(torch.mean(actor_loss.detach()).item())
-            if (batch_idx + 1) % 1 == 0:
+            if (batch_idx + 1) % 10 == 0:
                 end = time.time()
                 times.append(end - start)
                 start = end
 
-                mean_loss = np.mean(losses[-100:])
-                mean_reward = np.mean(rewards[-100:])
+                mean_loss = np.mean(losses[-10:])
+                mean_reward = np.mean(rewards[-10:])
 
                 print('  Batch %d/%d, tour length: %2.3f, avg. loss: %2.4f, took: %2.4fs' %
                       (batch_idx + 1, len(train_loader), mean_reward, mean_loss,
@@ -166,13 +166,13 @@ def train_vrp(args):
     LOAD_DICT = {16: 20, 49: 30, 1: 10, 25: 30, 36: 55, 64: 50, 81: 50, 5: 10, 10: 20, 20: 30, 50: 40, 100: 50}
     # TODO convert these values into self. attributes of VRPdataset
     MAX_DEMAND = 9
-    STATIC_SIZE = 2  # (x, y)
     DYNAMIC_SIZE = 2  # (load, demand)
     max_load = LOAD_DICT[args.num_nodes]
-    enc_feats = 32
-    STATIC_SIZE = enc_feats
     num_nodes = args.num_nodes
     embedding = "node2vec"
+    enc_feats = 32
+    STATIC_SIZE = enc_feats
+
     train_data = VehicleRoutingDataset(args.train_size,
                                        args.num_nodes,
                                        max_load,
@@ -198,7 +198,6 @@ def train_vrp(args):
                              train_data.update_mask,
                              args.num_layers,
                              args.dropout,
-                             enc_feats,
                              num_nodes).to(device)
 
     kwargs = vars(args)
@@ -235,15 +234,15 @@ if __name__ == '__main__':
     parser.add_argument('--test', action='store_true', default=False)
     parser.add_argument('--task', default='vrp')
     parser.add_argument('--nodes', dest='num_nodes', default=16, type=int)
-    parser.add_argument('--actor_lr', default=5e-3, type=float)
-    parser.add_argument('--gamma', default=0.995, type=float)
+    parser.add_argument('--actor_lr', default=5e-4, type=float)
+    parser.add_argument('--critic_lr', default=5e-4, type=float)
     parser.add_argument('--max_grad_norm', default=2., type=float)
     parser.add_argument('--batch_size', default=256, type=int)
     parser.add_argument('--hidden', dest='hidden_size', default=128, type=int)
     parser.add_argument('--dropout', default=0.1, type=float)
     parser.add_argument('--layers', dest='num_layers', default=1, type=int)
-    parser.add_argument('--train-size', default=65536, type=int)  # 65536
-    parser.add_argument('--valid-size', default=256, type=int)
+    parser.add_argument('--train-size',default=1000000, type=int)
+    parser.add_argument('--valid-size', default=1000, type=int)
 
     args = parser.parse_args()
 
