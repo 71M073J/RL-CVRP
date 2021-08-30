@@ -60,8 +60,8 @@ class PolicyNetwork(nn.Module):
         context = context.transpose(1, 2).expand_as(adj)
         energy = torch.cat((adj, context), dim=1)  # (B, num_feats, seq_len)
 
-        v = self.v.expand(static.size(0), -1, -1)
-        W = self.W.expand(static.size(0), -1, -1)
+        v = self.v.expand(adj.size(0), -1, -1)
+        W = self.W.expand(adj.size(0), -1, -1)
         # test = torch.bmm(W, energy)
         probs = torch.bmm(v, torch.tanh(torch.bmm(W, energy))).squeeze(1)  # probabilities of node transition
 
@@ -228,7 +228,7 @@ class ReinforceRL4CVRP(nn.Module):
             tour_logp.append(logp.unsqueeze(1))
             tour_idx.append(ptr.data.unsqueeze(1))
 
-            last_action = torch.gather(static, 2,
+            last_action = torch.gather(adj, 2,
                                        ptr.view(-1, 1, 1)
                                        .expand(-1, input_size, 1)).detach()
 

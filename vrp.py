@@ -130,8 +130,8 @@ class VehicleRoutingDataset(Dataset):
 
         weights = torch.full((num_samples, graph_size), 1.)
         x = torch.multinomial(weights, 1 + num_demands, False)
-        depot = torch.full((num_samples, graph_size), False)
-        depot[range(num_samples), x[:, 0]] = True
+        depot = torch.full((num_samples, graph_size), 0.)
+        depot[range(num_samples), x[:, 0]] = 1.
         self.depot = depot
         demand = torch.full(dynamic_shape, 0.)
         if different_num_of_demands:  # TODO not fully implemented
@@ -176,7 +176,10 @@ class VehicleRoutingDataset(Dataset):
         new_mask = self.adj[chosen_idx].gt(0) * demands.le(loads)  # adjacencies to start with
 
         done = in_depot * has_no_demand
-        new_mask[done, :] = depot[done, :]
+
+        if done.any():
+            new_mask[done, :] = depot[done, :].gt(0)
+        # new_mask[done, :] = depot[done, :]
         return new_mask.float()
 
     def update_dynamic(self, dynamic, chosen_idx, depot):
