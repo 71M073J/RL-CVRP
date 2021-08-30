@@ -19,7 +19,7 @@ class PolicyNetwork(nn.Module):
         self.v = nn.Parameter(torch.zeros((1, 1, hidden_size),
                                           device=device, requires_grad=True))
 
-        self.W = nn.Parameter(torch.zeros((1, hidden_size, 2 * num_nodes + 2 + enc_feats),
+        self.W = nn.Parameter(torch.zeros((1, hidden_size, 2 * num_nodes + enc_feats),
                                           device=device, requires_grad=True))
 
         # Used to compute a representation of the current decoder output
