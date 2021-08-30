@@ -44,7 +44,7 @@ def validate(data_loader, actor, reward_fn, num_nodes, render_fn=None, save_dir=
         with torch.no_grad():
             _, tour_indices, _ = actor.forward(adj, static, dynamic, x0)
 
-        reward = reward_fn(static, tour_indices, adj, x0, num_nodes).mean().item()
+        reward = reward_fn(dynamic, tour_indices, adj, x0, num_nodes).mean().item()
         rewards.append(reward)
 
         # if render_fn is not None and batch_idx < num_plot:
@@ -70,7 +70,8 @@ def train(actor, task, num_nodes, train_data, valid_data, reward_fn,
     if not os.path.exists(checkpoint_dir):
         os.makedirs(checkpoint_dir)
 
-    actor_optim = optim.Adam(actor.parameters(), lr=actor_lr)
+    actor_optim = optim.Adam(actor.parameters(), lr=actor_lr, amsgrad=True)
+    # actor_optim = optim.Adam(actor.parameters(), lr=actor_lr)
     train_loader = DataLoader(train_data, batch_size, True, num_workers=0)
     valid_loader = DataLoader(valid_data, batch_size, False, num_workers=0)
 
@@ -141,9 +142,12 @@ def train(actor, task, num_nodes, train_data, valid_data, reward_fn,
                               valid_dir, num_plot=5)
 
         # Save best model parameters
-        if mean_valid < best_reward:
-            best_reward = mean_valid
-
+        if mean_reward < best_reward:
+            best_reward = mean_reward
+            f = open(str(kwargs['emb']) + str(num_nodes) + ".txt")
+            f.write("the best reward of this embedding was " + str(best_reward))
+            f.write("At epoch " + str(epoch))
+            f.close()
             save_path = os.path.join(save_dir, 'actor.pt')
             torch.save(actor.state_dict(), save_path)
 

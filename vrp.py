@@ -143,11 +143,12 @@ class VehicleRoutingDataset(Dataset):
         self.depot = depot
         demand = torch.full(dynamic_shape, 0.)
         if different_num_of_demands:  # TODO not fully implemented
-            for i in range(num_samples):
-                x = torch.multinomial(torch.ones((graph_size,)),
-                                      random.randint(1, graph_size - 2))  # TODO check if is depot, if so ignore
-                for j in range(graph_size):
-                    demand[range(num_samples), 0, x[:, j + 1]] = 1
+            a = 0
+            # for i in range(num_samples):
+            #     x = torch.multinomial(torch.ones((graph_size,)),
+            #                           random.randint(1, graph_size - 2))
+            #     for j in range(graph_size):
+            #         demand[range(num_samples), 0, x[:, j + 1]] = 1
         else:
             for i in range(0, num_demands):
                 demand[range(num_samples), 0, x[:, i + 1]] = torch.randint(1, max_demand + 1, (num_samples,)) / float(
