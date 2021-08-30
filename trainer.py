@@ -249,7 +249,7 @@ if __name__ == '__main__':
     parser.add_argument('--train-size', default=65536, type=int)  # 65536
     parser.add_argument('--valid-size', default=1024, type=int)
     parser.add_argument('--embed', default=None)
-    parser.add_argument('--all', default=False)
+    parser.add_argument('--all', action='store_true', default=False)
     args = parser.parse_args()
 
     # print('NOTE: SETTTING CHECKPOINT: ')
