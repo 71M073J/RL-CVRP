@@ -50,7 +50,7 @@ class PolicyNetwork(nn.Module):
         context = enc_attn.bmm(know)  # (B, 1, num_feats)
 
         # Calculate the next output using Batch-matrix-multiply ops
-        context = context.transpose(1, 2)  # .expand_as(static)
+        context = context.expand_as(know).transpose(1, 2)
         energy = torch.cat((adj, context), dim=1)  # (B, num_feats, seq_len)
 
         v = self.v.expand(static.size(0), -1, -1)
@@ -80,7 +80,7 @@ class Attention(nn.Module):
 
         batch_size, num_feats, num_nodes = hidden.size()
         # Broadcast some dimensions so we can do batch-matrix-multiply
-        v = self.v.expand(batch_size, num_nodes, -1)
+        v = self.v.expand(batch_size, 1, -1)
         W = self.W.expand(batch_size, -1, -1)
         # test = torch.bmm(W, hidden)
         attns = torch.bmm(v, torch.tanh(torch.bmm(W, hidden)))

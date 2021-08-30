@@ -106,18 +106,18 @@ def train(actor, task, num_nodes, train_data, valid_data, reward_fn,
             actor_optim.zero_grad()
             actor_loss.backward()
             # TODO? use or not
-            # torch.nn.utils.clip_grad_norm_(actor.parameters(), max_grad_norm)
+            torch.nn.utils.clip_grad_norm_(actor.parameters(), max_grad_norm)
             actor_optim.step()
 
             rewards.append(torch.mean(reward.detach()).item())
             losses.append(torch.mean(actor_loss.detach()).item())
-            if (batch_idx + 1) % 1 == 0:
+            if (batch_idx + 1) % 10 == 0:
                 end = time.time()
                 times.append(end - start)
                 start = end
 
-                mean_loss = np.mean(losses[-100:])
-                mean_reward = np.mean(rewards[-100:])
+                mean_loss = np.mean(losses[-10:])
+                mean_reward = np.mean(rewards[-10:])
 
                 print('  Batch %d/%d, tour length: %2.3f, avg. loss: %2.4f, took: %2.4fs' %
                       (batch_idx + 1, len(train_loader), mean_reward, mean_loss,
@@ -170,6 +170,7 @@ def train_vrp(args):
     DYNAMIC_SIZE = 2  # (load, demand)
     max_load = LOAD_DICT[args.num_nodes]
     num_nodes = args.num_nodes
+    args.embed = "node2vec"
     embedding = args.embed
     feat_dict = {None: num_nodes, "node2vec": int(num_nodes / 2), "GGVec": int(num_nodes / 2),
                  "ProNE": int(num_nodes / 2), "UMAP": int(num_nodes / 2), "GraRep": int(num_nodes / 2)}
@@ -246,7 +247,7 @@ if __name__ == '__main__':
     parser.add_argument('--layers', dest='num_layers', default=1, type=int)
     parser.add_argument('--train-size', default=65536, type=int)  # 65536
     parser.add_argument('--valid-size', default=256, type=int)
-    parser.add_argument('--embed', default="node2vec")
+    parser.add_argument('--embed', default=None)
 
     args = parser.parse_args()
 
