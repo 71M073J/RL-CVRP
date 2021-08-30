@@ -63,7 +63,7 @@ def train(actor, task, num_nodes, train_data, valid_data, reward_fn,
 
     now = '%s' % datetime.datetime.now().time()
     now = now.replace(':', '_')
-    now = now + kwargs['emb']
+    now = now + str(kwargs['emb'])
     save_dir = os.path.join(task, '%d' % num_nodes, now)
 
     checkpoint_dir = os.path.join(save_dir, 'checkpoints')
@@ -169,10 +169,12 @@ def train_vrp(args):
     STATIC_SIZE = 2  # (x, y)
     DYNAMIC_SIZE = 2  # (load, demand)
     max_load = LOAD_DICT[args.num_nodes]
-    enc_feats = 32
-    STATIC_SIZE = enc_feats
     num_nodes = args.num_nodes
-    embedding = "node2vec"
+    embedding = args.embed
+    feat_dict = {None: num_nodes, "node2vec": int(num_nodes / 2), "GGVec": int(num_nodes / 2),
+                 "ProNE": int(num_nodes / 2), "UMAP": int(num_nodes / 2), "GraRep": int(num_nodes / 2)}
+    enc_feats = feat_dict[embedding]
+    STATIC_SIZE = enc_feats
     train_data = VehicleRoutingDataset(args.train_size,
                                        args.num_nodes,
                                        max_load,
@@ -235,7 +237,7 @@ if __name__ == '__main__':
     parser.add_argument('--test', action='store_true', default=False)
     parser.add_argument('--task', default='vrp')
     parser.add_argument('--nodes', dest='num_nodes', default=16, type=int)
-    parser.add_argument('--actor_lr', default=5e-3, type=float)
+    parser.add_argument('--actor_lr', default=5e-4, type=float)
     parser.add_argument('--gamma', default=0.995, type=float)
     parser.add_argument('--max_grad_norm', default=2., type=float)
     parser.add_argument('--batch_size', default=256, type=int)
@@ -244,6 +246,7 @@ if __name__ == '__main__':
     parser.add_argument('--layers', dest='num_layers', default=1, type=int)
     parser.add_argument('--train-size', default=65536, type=int)  # 65536
     parser.add_argument('--valid-size', default=256, type=int)
+    parser.add_argument('--embed', default="node2vec")
 
     args = parser.parse_args()
 

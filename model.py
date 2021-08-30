@@ -19,7 +19,7 @@ class PolicyNetwork(nn.Module):
         self.v = nn.Parameter(torch.zeros((1, 1, hidden_size),
                                           device=device, requires_grad=True))
 
-        self.W = nn.Parameter(torch.zeros((1, hidden_size, 2 * enc_feats),
+        self.W = nn.Parameter(torch.zeros((1, hidden_size, 2 * num_nodes + 2 + enc_feats),
                                           device=device, requires_grad=True))
 
         # Used to compute a representation of the current decoder output
@@ -46,12 +46,12 @@ class PolicyNetwork(nn.Module):
 
         # Given a summary of the output, find an  input context
         enc_attn = self.encoder_attn(last_action, adj, static, dynamic, rnn_out)
-        context = enc_attn.bmm(static.permute(0, 2, 1))  # (B, 1, num_feats) feature quality of encoded stuff?
+        know = torch.cat((adj, static, dynamic), dim=1).transpose(1, 2)
+        context = enc_attn.bmm(know)  # (B, 1, num_feats)
 
         # Calculate the next output using Batch-matrix-multiply ops
-        context = context.transpose(1, 2).expand_as(static)
-        energy = torch.cat((static, context),
-                           dim=1)  # (B, num_feats, seq_len) join static hidden state with current feature context
+        context = context.transpose(1, 2)  # .expand_as(static)
+        energy = torch.cat((adj, context), dim=1)  # (B, num_feats, seq_len)
 
         v = self.v.expand(static.size(0), -1, -1)
         W = self.W.expand(static.size(0), -1, -1)
