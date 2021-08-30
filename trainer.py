@@ -144,7 +144,7 @@ def train(actor, task, num_nodes, train_data, valid_data, reward_fn,
         # Save best model parameters
         if mean_reward < best_reward:
             best_reward = mean_reward
-            f = open(str(kwargs['emb']) + str(num_nodes) + ".txt")
+            f = open(str(kwargs['emb']) + str(num_nodes) + ".txt", "a")
             f.write("the best reward of this embedding was " + str(best_reward))
             f.write("At epoch " + str(epoch))
             f.close()
