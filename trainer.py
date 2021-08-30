@@ -170,7 +170,6 @@ def train_vrp(args):
     DYNAMIC_SIZE = 2  # (load, demand)
     max_load = LOAD_DICT[args.num_nodes]
     num_nodes = args.num_nodes
-    args.embed = "node2vec"
     embedding = args.embed
     feat_dict = {None: num_nodes, "node2vec": int(num_nodes / 2), "GGVec": int(num_nodes / 2),
                  "ProNE": int(num_nodes / 2), "UMAP": int(num_nodes / 2), "GraRep": int(num_nodes / 2)}
