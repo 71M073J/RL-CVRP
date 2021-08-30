@@ -24,7 +24,7 @@ class PolicyNetwork(nn.Module):
 
         # Used to compute a representation of the current decoder output
         # TODO self.fc1 = nn.Linear(2 + 2 * enc_feats + num_nodes, ) WHYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY
-        self.gru = nn.GRU(2 + 2 * enc_feats + num_nodes, hidden_size, num_layers,
+        self.gru = nn.GRU(2 + 3 * enc_feats + num_nodes, hidden_size, num_layers,
                           batch_first=True,
                           dropout=dropout if num_layers > 1 else 0)
         self.encoder_attn = Attention(hidden_size, enc_feats, num_nodes)
@@ -47,14 +47,14 @@ class PolicyNetwork(nn.Module):
         # Given a summary of the output, find an  input context
         enc_attn = self.encoder_attn(last_action, adj, static, dynamic, rnn_out)
 
-        #context = enc_attn.bmm(static.permute(0, 2, 1))  # (B, 1, num_feats) feature quality of encoded stuff?
+        # context = enc_attn.bmm(static.permute(0, 2, 1))  # (B, 1, num_feats) feature quality of encoded stuff?
 
         # Calculate the next output using Batch-matrix-multiply ops
-        #context = context.transpose(1, 2).expand_as(static)
-        #energy = torch.cat((static, context), dim=1)
+        # context = context.transpose(1, 2).expand_as(static)
+        # energy = torch.cat((static, context), dim=1)
 
-        #know = torch.cat((adj, static), dim=1).permute(0, 2, 1)
-        context = enc_attn.bmm(adj.permute(0,2,1))  # (B, 1, num_feats)
+        # know = torch.cat((adj, static), dim=1).permute(0, 2, 1)
+        context = enc_attn.bmm(adj.permute(0, 2, 1))  # (B, 1, num_feats)
 
         # Calculate the next output using Batch-matrix-multiply ops
         context = context.transpose(1, 2).expand_as(adj)
@@ -78,7 +78,7 @@ class Attention(nn.Module):
         self.v = nn.Parameter(torch.zeros((1, 1, hidden_size),
                                           device=device, requires_grad=True))
 
-        self.W = nn.Parameter(torch.zeros((1, hidden_size, hidden_size + 2 + 2 * enc_feats + num_nodes),
+        self.W = nn.Parameter(torch.zeros((1, hidden_size, hidden_size + 2 + 3 * enc_feats + num_nodes),
                                           device=device, requires_grad=True))
 
     def forward(self, last_action, adj, static, dynamic, rnn_out):
@@ -141,7 +141,7 @@ class ReinforceRL4CVRP(nn.Module):
                 nn.init.xavier_uniform_(p)
 
         # Used as a proxy initial state in the decoder when not specified
-        self.x0 = torch.zeros((1, static_size, 1), requires_grad=True, device=device)
+        self.x0 = torch.zeros((1, static_size * 2, 1), requires_grad=True, device=device)
 
     def forward(self, adj, static, dynamic, depot, last_action=None, last_hh=None):
         """
@@ -228,9 +228,9 @@ class ReinforceRL4CVRP(nn.Module):
             tour_logp.append(logp.unsqueeze(1))
             tour_idx.append(ptr.data.unsqueeze(1))
 
-            last_action = torch.gather(adj, 2,
+            last_action = torch.gather(torch.cat((adj, static), dim=1), 2,
                                        ptr.view(-1, 1, 1)
-                                       .expand(-1, input_size, 1)).detach()
+                                       .expand(-1, 2 * input_size, 1)).detach()
 
         tour_idx = torch.cat(tour_idx, dim=1)  # (batch_size, seq_len)
         tour_logp = torch.cat(tour_logp, dim=1)  # (batch_size, seq_len)

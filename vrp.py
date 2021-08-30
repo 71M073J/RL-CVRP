@@ -110,12 +110,12 @@ class VehicleRoutingDataset(Dataset):
             grarep = nv.GraRep(n_components=enc_feats)
             embs = grarep.fit_transform(g)
             self.static = torch.tensor(embs).permute(1, 0).double()
-        # elif embedding == "GLoVe":
-        #     print("GLoVe se v smiselnem času ne odziva")
-        #     exit(0)
-        #     glove = nv.Glove(n_components=enc_feats, verbose=True, threads=4, max_epoch=1)
-        #     embs = glove.fit_transform(g)
-        #     self.static = torch.tensor(embs).permute(1, 0).double()
+        elif embedding == "GLoVe":
+            print("GLoVe se v smiselnem času ne odziva")
+            exit(0)
+            glove = nv.Glove(n_components=enc_feats, verbose=True, threads=4, max_epoch=1)
+            embs = glove.fit_transform(g)
+            self.static = torch.tensor(embs).permute(1, 0).double()
         elif embedding == "UMAP":
             embs = umap.UMAP(n_components=enc_feats, n_neighbors=5, min_dist=0.3, metric='correlation').fit_transform(
                 adjacencies)
