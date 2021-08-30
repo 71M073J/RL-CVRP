@@ -220,7 +220,9 @@ def train_vrp(args):
                                       args.num_nodes,
                                       max_load,
                                       MAX_DEMAND,
-                                      args.seed + 2)
+                                      args.seed + 2,
+                                      embedding,
+                                      enc_feats=enc_feats)
 
     test_dir = 'test'
     test_loader = DataLoader(test_data, args.batch_size, False, num_workers=0)
@@ -240,14 +242,14 @@ if __name__ == '__main__':
     parser.add_argument('--actor_lr', default=5e-4, type=float)
     parser.add_argument('--gamma', default=0.995, type=float)
     parser.add_argument('--max_grad_norm', default=2., type=float)
-    parser.add_argument('--batch_size', default=256, type=int)
+    parser.add_argument('--batch_size', default=156, type=int)
     parser.add_argument('--hidden', dest='hidden_size', default=128, type=int)
     parser.add_argument('--dropout', default=0.1, type=float)
     parser.add_argument('--layers', dest='num_layers', default=1, type=int)
     parser.add_argument('--train-size', default=65536, type=int)  # 65536
-    parser.add_argument('--valid-size', default=256, type=int)
+    parser.add_argument('--valid-size', default=1024, type=int)
     parser.add_argument('--embed', default=None)
-
+    parser.add_argument('--all', default=False)
     args = parser.parse_args()
 
     # print('NOTE: SETTTING CHECKPOINT: ')
@@ -255,6 +257,13 @@ if __name__ == '__main__':
     # print(args.checkpoint)
 
     if args.task == 'vrp':
-        train_vrp(args)
+        if args.all:
+            embeds = [None, "node2vec", "GGVec", "ProNE", "GraRep", "UMAP"]
+            print("Running all embeddings on current parameters")
+            for emb in embeds:
+                args.embed = emb
+                train_vrp(args)
+        else:
+            train_vrp(args)
     else:
         raise ValueError('Task <%s> not understood' % args.task)

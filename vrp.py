@@ -16,7 +16,7 @@ import umap
 import math
 from node2vec import Node2Vec
 from torch.utils.data import Dataset
-
+import os
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
@@ -61,18 +61,26 @@ class VehicleRoutingDataset(Dataset):
         #         for y in range(graph_size + 1)], dim=1) for x in range(graph_size + 1)], dim=1)
 
         # TODO edges = torch.randint(0, graph_size, (2, avg_power * graph_size))
+
+        graph_path = str(embedding) + str(graph_size)
         g = nx.Graph()
-        g.add_nodes_from(range(graph_size))
-        t = math.floor(math.sqrt(graph_size))
-        g.add_weighted_edges_from(
-            [(i * t + j, (i + 1) * t + j, 1 / (random.random() * max_dist + 1)) for i in range(t - 1) for j in range(t)])
-        g.add_weighted_edges_from(
-            [(i * t + j, i * t + j + 1, 1 / (random.random() * max_dist + 1)) for i in range(t) for j in range(t - 1)])
+        if os.path.isfile(graph_path):
+            g = nx.read_weighted_edgelist(graph_path)
+        else:
+            g.add_nodes_from(range(graph_size))
+            t = math.floor(math.sqrt(graph_size))
+            g.add_weighted_edges_from(
+                [(i * t + j, (i + 1) * t + j, 1 / (random.random() * max_dist + 1)) for i in range(t - 1) for j in range(t)])
+            g.add_weighted_edges_from(
+                [(i * t + j, i * t + j + 1, 1 / (random.random() * max_dist + 1)) for i in range(t) for j in range(t - 1)])
+            nx.write_weighted_edgelist(g, graph_path)
+
         adjacencies = torch.zeros((graph_size, graph_size,))  # adjacencies - the same for every sample
         for i, adj in g.adjacency():
             for node in adj:
-                adjacencies[i, node] = 1/g.edges[i, node]["weight"]
+                adjacencies[int(i), int(node)] = float(1/g.edges[i, node]["weight"])
         self.adj = adjacencies.to(device)
+        self.graph = g
         # to je static value enak za vse sample, ker treniramo na istem grafu
         # zato so to tudi node embeddingi, ker se parametri networka ne spreminjajo
         # self.road_lengths = torch.tensor((np.zeros([graph_size, graph_size]))) # costs of these roads, technically adjacencies not needed
@@ -102,12 +110,12 @@ class VehicleRoutingDataset(Dataset):
             grarep = nv.GraRep(n_components=enc_feats)
             embs = grarep.fit_transform(g)
             self.static = torch.tensor(embs).permute(1, 0).double()
-        elif embedding == "GLoVe":
-            print("GLoVe se v smiselnem času ne odziva")
-            exit(0)
-            glove = nv.Glove(n_components=enc_feats, verbose=True, threads=4, max_epoch=1)
-            embs = glove.fit_transform(g)
-            self.static = torch.tensor(embs).permute(1, 0).double()
+        # elif embedding == "GLoVe":
+        #     print("GLoVe se v smiselnem času ne odziva")
+        #     exit(0)
+        #     glove = nv.Glove(n_components=enc_feats, verbose=True, threads=4, max_epoch=1)
+        #     embs = glove.fit_transform(g)
+        #     self.static = torch.tensor(embs).permute(1, 0).double()
         elif embedding == "UMAP":
             embs = umap.UMAP(n_components=enc_feats, n_neighbors=5, min_dist=0.3, metric='correlation').fit_transform(
                 adjacencies)
