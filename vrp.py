@@ -62,7 +62,7 @@ class VehicleRoutingDataset(Dataset):
 
         # TODO edges = torch.randint(0, graph_size, (2, avg_power * graph_size))
 
-        graph_path = str(embedding) + str(graph_size)
+        graph_path = str(graph_size)
         g = nx.Graph()
         if os.path.isfile(graph_path):
             g = nx.read_weighted_edgelist(graph_path)
