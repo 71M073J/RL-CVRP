@@ -46,7 +46,7 @@ class PolicyNetwork(nn.Module):
 
         # Given a summary of the output, find an  input context
         enc_attn = self.encoder_attn(last_action, adj, static, dynamic, rnn_out)
-        know = torch.cat((adj, static), dim=1).transpose(1, 2)
+        know = torch.cat((adj, static), dim=1).permute(0, 2, 1)
         context = enc_attn.bmm(know)  # (B, 1, num_feats)
 
         # Calculate the next output using Batch-matrix-multiply ops
