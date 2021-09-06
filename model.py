@@ -197,7 +197,7 @@ class ReinforceRL4CVRP(nn.Module):
 
             # When training, sample the next step according to its probability.
             # During testing, we can take the greedy approach and choose highest
-            if self.training:
+            if self.training or True:
 
                 m = torch.distributions.Categorical(probs)
 
@@ -235,7 +235,7 @@ class ReinforceRL4CVRP(nn.Module):
         tour_idx = torch.cat(tour_idx, dim=1)  # (batch_size, seq_len)
         tour_logp = torch.cat(tour_logp, dim=1)  # (batch_size, seq_len)
 
-        return dynamic, tour_idx, tour_logp
+        return (dynamic, tour_idx, tour_logp)
 
 
 if __name__ == '__main__':

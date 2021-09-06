@@ -26,7 +26,8 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 def validate(data_loader, actor, reward_fn, num_nodes, render_fn=None, save_dir='.',
              num_plot=5):
     """Used to monitor progress on a validation set & optionally plot solution."""
-
+    # for some reason returns incorrrect values
+    # fix later?
     actor.eval()
 
     if not os.path.exists(save_dir):
@@ -43,7 +44,7 @@ def validate(data_loader, actor, reward_fn, num_nodes, render_fn=None, save_dir=
 
         with torch.no_grad():
             _, tour_indices, _ = actor.forward(adj, static, dynamic, x0)
-
+        #reward = reward_fn(dynamic, tour_indices, adj, x0, num_nodes)
         reward = reward_fn(dynamic, tour_indices, adj, x0, num_nodes).mean().item()
         rewards.append(reward)
 
@@ -88,7 +89,6 @@ def train(actor, task, num_nodes, train_data, valid_data, reward_fn,
         start = epoch_start
 
         for batch_idx, batch in enumerate(train_loader):
-
             adj, static, dynamic, x0 = batch
 
             adj = adj.to(device)
